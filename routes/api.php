@@ -1,48 +1,30 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-// use App\Http\Controllers\CertificateController; // <- si ya tienes este controlador
+use App\Http\Controllers\CertificateController;
+use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Rutas de Autenticación (JWT)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('auth')->group(function () {
-    // Públicas
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login',    [AuthController::class, 'login']);
+// RUTAS PÚBLICAS
+Route::post('auth/register', [AuthController::class, 'register']);
+Route::post('auth/login',    [AuthController::class, 'login']);
 
-    // Protegidas con JWT
-    Route::middleware('auth:api')->group(function () {
+// Certificados públicos - fuera del grupo auth
+Route::get('certificates/{certificado}', [CertificateController::class, 'show']); // PÚBLICO
+Route::get('certificates/code/{code}', [CertificateController::class, 'showByCode']);
+// RUTAS PROTEGIDAS (requieren autenticación)
+Route::middleware('auth:api')->group(function () {
+    // Rutas de autenticación protegidas
+    Route::prefix('auth')->group(function () {
         Route::get('me',       [AuthController::class, 'me']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::post('logout',  [AuthController::class, 'logout']);
     });
+
+    // Rutas de certificados protegidas
+    Route::prefix('certificates')->group(function () {
+        Route::get('/', [CertificateController::class, 'index']);   // list + búsqueda
+        Route::post('/', [CertificateController::class, 'store']);
+        Route::put('{certificado}', [CertificateController::class, 'update']);
+        Route::delete('{id}', [CertificateController::class, 'destroy']);
+    });
 });
-
-/*
-|--------------------------------------------------------------------------
-| Rutas de tu API
-|--------------------------------------------------------------------------
-*/
-
-// Ejemplos de prueba
-Route::get('ping', fn () => response()->json(['ok' => true])); // pública
-Route::middleware('auth:api')->get('secure-ping', fn () => response()->json([
-    'ok'   => true,
-    'user' => auth('api')->user(),
-]));
-
-// --- Ejemplo para tus certificados caninos ---
-// Pública (consulta por chip)
-// Route::get('certificates/{chip}', [CertificateController::class, 'publicShow']);
-
-// Privadas (gestión CRUD)
-// Route::middleware('auth:api')->prefix('certificates')->group(function () {
-//     Route::post('/',        [CertificateController::class, 'store']);
-//     Route::put('{id}',      [CertificateController::class, 'update']);
-//     Route::delete('{id}',   [CertificateController::class, 'destroy']);
-//     Route::get('mine',      [CertificateController::class, 'indexByOwner']); // ejemplo
-// });
